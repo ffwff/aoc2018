@@ -1,3 +1,6 @@
+// NOTE code doesnt work for large inputs
+// must be something with get_job
+// so basically you can't solve aoc with this :(
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -51,6 +54,7 @@ void print() {
 }
 
 // #2
+std::vector<int> worker_queue;
 int get_job() {
     for(int i = 0; i < length; i++) {
         if(!chars_available[i]) continue;
@@ -61,9 +65,29 @@ int get_job() {
         }
     }
     return -1;
+    /*
+    if(worker_queue.empty()) {
+        bool found = false;
+        for(int i = 0; i < length; i++) {
+            if(!chars_available[i]) continue;
+            if(chars[i].empty()) {
+                //printf("%d\n", i);
+                chars_available[i] = false;
+                worker_queue.push_back(i);
+                found = true;
+            }
+        }
+        //std::sort(worker_queue.begin(), worker_queue.end());
+        if(!found) return -1;
+    }
+    int i = worker_queue.front();
+    worker_queue.erase(worker_queue.begin());
+    return i;
+    */
 }
 
 std::string worker_done("");
+int time_spent[length] = {0};
 class Elf {
 public:
     int i, time_remaining;
@@ -71,27 +95,31 @@ public:
     
     void setup() {
         i = get_job();
-        time_remaining = i+60;
+        time_remaining = 60+i;
     };
     
     void tick() {
         if(i == -1) {
             setup();
+            //time_remaining--;
             return;
         }
         if(time_remaining == 0) {
             // remove dependencies
+            int old_i = i;
+            setup();
             for(auto &dep : chars) {
-                dep.erase(std::remove_if(dep.begin(), dep.end(), [this](int c){
-                    return c == i;
+                dep.erase(std::remove_if(dep.begin(), dep.end(), [old_i](int c){
+                    return c == old_i;
                 }), dep.end());
             }
-            worker_done.append(1, i+'A');
+            worker_done.append(1, old_i+'A');
             //
-            setup();
+            
             return;
         }
         time_remaining--;
+        time_spent[i]++;
     };
 };
 
@@ -110,17 +138,21 @@ void log_elves(int sec) {
 int calculate_seconds() {
     //print();
     int n = 0;
-    while(true) {
+    while(n < 10000) {
         //printf("#%d\n", n);
         int jobs_remaining = 0;
         for(auto &elf : elves) {
             elf.tick();
-            if(elf.i != -1)
-                jobs_remaining++;
+            //if(elf.i != -1)
+            //    jobs_remaining++;
+        }
+        for(auto &elf : elves) {
+            if(elf.i == -1)
+                elf.setup();
         }
         log_elves(n);
-        if(jobs_remaining == 0)
-            break;
+        //if(jobs_remaining == 0)
+        //    break;
         n++;
     }
     return n;
@@ -178,4 +210,9 @@ int main(int argc, char **argv) {
     printf("---\n");
     int secs = calculate_seconds();
     printf("%d\n", secs);
+    
+    for(int i = 0; i < length; i++) {
+        printf("%d ", time_spent[i]);
+    }
+    printf("\n");
 }
